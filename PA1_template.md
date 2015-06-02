@@ -3,7 +3,7 @@
 
 ## Loading and preprocessing the data
 
-Following is the code to load the activity.csv dataset. The raw dataset is then filtered to remove rows with an NA value. Finally, date is converted from a chr class to a date class.
+Following is the code to load the activity.csv dataset into a data table. First, date is converted from a chr class to a date class and a weekday factor is determined from the date. Next, average steps per interval are computed. Finally, average steps are merged with the activity table.
 
 
 ```r
@@ -14,18 +14,9 @@ library(data.table)
 ## Warning: package 'data.table' was built under R version 3.1.3
 ```
 
-```
-## 
-## Attaching package: 'data.table'
-## 
-## The following object is masked _by_ '.GlobalEnv':
-## 
-##     .N
-```
-
 ```r
 # Load the csv file into a dataframe.  
-chrFile = "C:\\coursera\\DataScientist\\5-ReproResearch\\Peer1\\RepData_PeerAssessment1\\data\\activity.csv"
+chrFile = "data/activity.csv"
 dtAct <- data.table(read.csv(chrFile, header=TRUE, sep=',', na.strings="NA", 
                              check.names=FALSE, stringsAsFactors=FALSE, comment.char=""))
 
@@ -35,32 +26,18 @@ dtAct$date <- as.Date(dtAct$date, format="%Y-%m-%d")
 dtAct$weekday <- as.factor(weekdays(dtAct$date))
 # Create a vector of day of the week numbers
 dtAct$day = ifelse(wday(dtAct$date)==1,7,wday(dtAct$date)-1)
-# How many observatation per weekday
-#table(dtAct$weekday)
-# How many observations per day
-#table(dtAct$day)
 
 # Put mean steps into dtAct
-dfAvgStepsByInt <- as.data.frame(dtAct[, mean(steps, na.rm = TRUE),by = interval])
-colnames(dfAvgStepsByInt)[2] <- "meansteps"
-#str(dfAvgStepsByInt)
+dfAvgSteps <- as.data.frame(dtAct[, mean(steps, na.rm = TRUE), by = interval])
+colnames(dfAvgSteps)[2] <- "meansteps"
+
 # Convert to data.table
-dtAvgStepsByInt <- data.table(dfAvgStepsByInt)
-str(dtAvgStepsByInt)
-```
+dtAvgSteps <- data.table(dfAvgSteps)
 
-```
-## Classes 'data.table' and 'data.frame':	288 obs. of  2 variables:
-##  $ interval : int  0 5 10 15 20 25 30 35 40 45 ...
-##  $ meansteps: num  1.717 0.3396 0.1321 0.1509 0.0755 ...
-##  - attr(*, ".internal.selfref")=<externalptr>
-```
-
-```r
 # Set keys to do merge
 setkey(dtAct, "interval")
-setkey(dtAvgStepsByInt, "interval")
-dtAct <- merge(dtAct, dtAvgStepsByInt)
+setkey(dtAvgSteps, "interval")
+dtAct <- merge(dtAct, dtAvgSteps)
 ```
 
 ## What is mean total number of steps taken per day?
@@ -69,8 +46,14 @@ Following is a histogram of the total number of steps take per day.
 
 
 ```r
-library(ggplot2)
+library(ggplot2, warn.conflicts = FALSE, quietly=TRUE)
+```
 
+```
+## Warning: package 'ggplot2' was built under R version 3.1.3
+```
+
+```r
 # Plot interval with day of week colored for each bar
 p <- ggplot(dtAct, aes(x=day, y=steps, fill=factor(weekday))) + 
             stat_summary(fun.y="sum", geom="bar") +
@@ -125,9 +108,9 @@ print(ggpMeanSteps)
 ![](PA1_template_files/figure-html/unnamed-chunk-4-1.png) 
 
 ```r
-dfAvgStepsByInt <- as.data.frame(dtAct[, mean(steps, na.rm = TRUE),by = interval])
-colnames(dfAvgStepsByInt)[2] <- "mean"
-mean(dfAvgStepsByInt$mean)
+dfAvgSteps <- as.data.frame(dtAct[, mean(steps, na.rm = TRUE),by = interval])
+colnames(dfAvgSteps)[2] <- "mean"
+mean(dfAvgSteps$mean)
 ```
 
 ```
@@ -135,16 +118,16 @@ mean(dfAvgStepsByInt$mean)
 ```
 
 ```r
-dfMdnStepsByInt <- as.data.frame(dtAct[, median(order(steps), na.rm = TRUE),by = interval])
-colnames(dfMdnStepsByInt)[2] <- "median"
-median(order(dfMdnStepsByInt$median))
+dfMdnSteps <- as.data.frame(dtAct[, median(order(steps), na.rm = TRUE),by = interval])
+colnames(dfMdnSteps)[2] <- "median"
+median(order(dfMdnSteps$median))
 ```
 
 ```
 ## [1] 144.5
 ```
 
-The following shows which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps. The maximum number of steps occurs at interval 615
+The following shows which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps. The maximum number of steps is 806 and it occurs at interval 615.
 
 
 ```r
@@ -197,7 +180,7 @@ length(which(is.na(dtAct$interval)))
 ```
 As you can see there are 2304 missing step records. None of the records for date or interval are missing.
 
-I have appended a meansteps to the dtAct data table. I will use the meansteps variable for those steps that have NA. I will calulate mean and median again. As you will see there is no difference in the means. However, the median is a more respecible value, Therefore, the subsitution policy works.
+I have appended a meansteps variable to the dtAct data table. I will use the meansteps variable for those steps that have NA. I will calulate mean and median again. As you will see there is no difference in the means. However, the median is a more respecable value, Therefore, the subsitution policy works.
 
 
 ```r
@@ -205,9 +188,9 @@ I have appended a meansteps to the dtAct data table. I will use the meansteps va
 dtAct <- transform(dtAct, steps = ifelse(is.na(steps), as.integer(meansteps + 0.5), steps))
 
 # Calc mean and median again.
-dfAvgStepsByInt <- as.data.frame(dtAct[, mean(steps),by = interval])
-colnames(dfAvgStepsByInt)[2] <- "mean"
-mean(dfAvgStepsByInt$mean)
+dfAvgSteps <- as.data.frame(dtAct[, mean(steps),by = interval])
+colnames(dfAvgSteps)[2] <- "mean"
+mean(dfAvgSteps$mean)
 ```
 
 ```
@@ -215,9 +198,9 @@ mean(dfAvgStepsByInt$mean)
 ```
 
 ```r
-dfMdnStepsByInt <- as.data.frame(dtAct[, median(order(steps)),by = interval])
-colnames(dfMdnStepsByInt)[2] <- "median"
-median(order(dfMdnStepsByInt$median))
+dfMdnSteps <- as.data.frame(dtAct[, median(order(steps)),by = interval])
+colnames(dfMdnSteps)[2] <- "median"
+median(order(dfMdnSteps$median))
 ```
 
 ```
@@ -307,7 +290,7 @@ dtDay <- sqldf("select * from dtAct where weekdayend = 'weekday'")
 ```
 
 ```r
-dfAvgStepsByIntDay <- as.data.frame(dtAct[, mean(steps, na.rm = TRUE), by = day])
+#dfAvgSteps <- as.data.frame(dtAct[, mean(steps, na.rm = TRUE), by = day])
 mean(dtDay$steps)
 ```
 
@@ -320,7 +303,7 @@ The folllowing shows the mean of a weekend day.
 
 ```r
 dtEnd <- sqldf("select * from dtAct where weekdayend = 'weekend'")
-dfAvgStepsByIntEnd <- as.data.frame(dtAct[, mean(steps, na.rm = TRUE), by = day])
+#dfAvgSteps <- as.data.frame(dtAct[, mean(steps, na.rm = TRUE), by = day])
 mean(dtEnd$steps)
 ```
 
@@ -329,4 +312,4 @@ mean(dtEnd$steps)
 ```
 As you can see weekday mean is 35.60864 and weekend mean is 42.36458.
 
-So, it appears that the subject was more active during the weekend. Also, during the weekend most steps seem to occur by around interval 1500. Whereas, most step during the weekday seem to occur acount interval 1000. This indicates that the subject does most of his walking in short bursts during the weekday and most of his walking during the weekend in longer bursts of activity. 
+So, it appears that the subject was more active during the weekend. Also, during the weekend most steps seem to occur by around interval 1500. Whereas, most step during the weekday seem to occur around interval 1000. This indicates that the subject does most of his walking in short bursts during the weekday and most of his walking during the weekend in longer bursts of activity. 
