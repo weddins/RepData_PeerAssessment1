@@ -55,14 +55,14 @@ library(ggplot2, warn.conflicts = FALSE, quietly=TRUE)
 
 ```r
 # Plot interval with day of week colored for each bar
-p <- ggplot(dtAct, aes(x=day, y=steps, fill=factor(weekday))) + 
+ppgDayWeek <- ggplot(dtAct, aes(x=day, y=steps, fill=factor(weekday))) + 
             stat_summary(fun.y="sum", geom="bar", na.rm = TRUE) +
             scale_x_discrete(breaks=c(1:7),
             labels=c("Mon","Tue","Wed","Thu","Fri","Sat","Sun")) +
-            ggtitle("Histogram of Steps per Day") + xlab("Day") + ylab("Steps") +
+            ggtitle("G1: Histogram of Steps per Day") + xlab("Day") + ylab("Steps") +
             scale_fill_discrete(name="Day of the Week", breaks = dtAct$weekday)
 
-print(p)
+print(ppgDayWeek)
 ```
 
 ![](figures/1-BarDayOfWeek-1.png) 
@@ -86,6 +86,7 @@ median(order(dtAct$mean), na.rm = TRUE)
 ## [1] 8784.5
 ```
 
+From graph 1 above and the mean and median, one can say that during week days the total number of steps rises through Monday, Tuesday and Wednesday. Total number of steps for Thursday drops. Then, total number of steps for Friday, Saturday and Friday rise to the about the same number of steps. The average number of steps per interval is about 37.3 and the median is about 8,784 which is unreasonable as a statistic without considering missing values and intervals.
 
 ## What is the average daily activity pattern?
 
@@ -95,7 +96,7 @@ Following is a time series plot of the 5-minute interval (x-axis) and the averag
 ```r
 ggpMeanSteps = ggplot(dtAct, aes(interval, meansteps, type = "l")) + 
       geom_line() +
-      labs(title="Mean Steps by Interval") + xlab("Interval") + ylab("Steps")
+      labs(title="G2: Mean Steps by Interval") + xlab("Interval") + ylab("Steps")
 
 print(ggpMeanSteps)
 ```
@@ -122,7 +123,8 @@ median(order(dfMdnSteps$median))
 ## [1] 144.5
 ```
 
-The following shows which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps. The maximum number of steps is 806 and it occurs at interval 615.
+The following shows which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps. The maximum number of steps is 806 and it occurs at interval 615. 
+
 
 
 ```r
@@ -135,13 +137,15 @@ summary(dtAct$steps)
 ```
 
 ```r
-dtAct[dtAct$steps == 806, ]
+dtAct[which.max(dtAct$steps),]
 ```
 
 ```
 ##    interval steps       date weekday day meansteps
 ## 1:      615   806 2012-11-27 Tuesday   2  63.45283
 ```
+
+The graph 2 plot above shows that steps per interval peak between the 500th and 1,000th interval. The calculation above indicates that interval 615 has the greatest number of steps. The mean steps per interval holds steady at 37.3 and the median is now 144.5 since it is being calculated per interval as apposed to across all intervals. So the data shows a slow start, peaking at interval 615; and then a steady, slow decline in steps until the day is over.
 
 ## Imputing missing values
 
@@ -175,7 +179,7 @@ length(which(is.na(dtAct$interval)))
 ```
 As you can see there are 2304 missing step records. None of the records for date or interval are missing.
 
-I have appended a meansteps variable to the dtAct data table. I will use the meansteps variable for those steps that have NA. I will calulate mean and median again. As you will see there is no difference in the means. However, the median is a more respecable value, Therefore, the subsitution policy works.
+My approach to handing missing values follows. I have appended a meansteps variable to the dtAct data table. I will use the meansteps variable for those steps that have NA. I will calulate mean and median again and recalculate the bar graph of total steps per day.
 
 
 ```r
@@ -183,7 +187,7 @@ I have appended a meansteps variable to the dtAct data table. I will use the mea
 dtAct <- transform(dtAct, steps = ifelse(is.na(steps), as.integer(meansteps + 0.5), steps))
 
 # Calc mean and median again.
-dfAvgSteps <- as.data.frame(dtAct[, mean(steps),by = interval])
+dfAvgSteps <- as.data.frame(dtAct[, mean(steps), by = interval])
 colnames(dfAvgSteps)[2] <- "mean"
 mean(dfAvgSteps$mean)
 ```
@@ -193,7 +197,7 @@ mean(dfAvgSteps$mean)
 ```
 
 ```r
-dfMdnSteps <- as.data.frame(dtAct[, median(order(steps)),by = interval])
+dfMdnSteps <- as.data.frame(dtAct[, median(order(steps)), by = interval])
 colnames(dfMdnSteps)[2] <- "median"
 median(order(dfMdnSteps$median))
 ```
@@ -201,6 +205,25 @@ median(order(dfMdnSteps$median))
 ```
 ## [1] 144.5
 ```
+
+Following is a histogram of the total number of steps after imputting missing values.
+
+
+```r
+# Plot interval using imputted interval means with day of week colored for each bar
+ppgDayWeekWoNA <- ggplot(dtAct, aes(x=day, y=steps, fill=factor(weekday))) + 
+            stat_summary(fun.y="sum", geom="bar") +
+            scale_x_discrete(breaks=c(1:7),
+            labels=c("Mon","Tue","Wed","Thu","Fri","Sat","Sun")) +
+            ggtitle("G3: Histogram with Imputted Steps") + xlab("Day") + ylab("Steps") +
+            scale_fill_discrete(name="Day of the Week", breaks = dtAct$weekday)
+
+print(ppgDayWeekWoNA)
+```
+
+![](figures/3-BarDayOfWeekImputted-1.png) 
+
+Both the mean (37.3) and the median (144.5) are the same as before imputing missing values. Also, the histogram seen in graph 3 above is similar before imputting missing values. However, the shape of the histogram is slightly different indicating a drop in Tuesday's activities. Thus, I conclude that the substitution policy works as the data analysis is simialar with NAs and without NAs.
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
@@ -228,12 +251,12 @@ dtAct <- setcolorder(dtAct, c("day", "date", "weekday", "interval", "steps", "me
 ppgWeekdayWeekend = ggplot(dtAct, aes(x = interval, y = steps, type = "l")) + 
       geom_line() +
       facet_grid(weekdayend ~ .) +
-      labs(title="Mean Steps by Interval by Weekday or Weekend") + 
+      labs(title="G4: Mean Steps by Weekday or Weekend") + 
       xlab("Interval") + ylab("Steps")
 print(ppgWeekdayWeekend)
 ```
 
-![](figures/3-LineGraphStepsByWeekEnd-1.png) 
+![](figures/4-LineGraphStepsByWeekEnd-1.png) 
 
 The following shows the mean of a weekday for each interval.
 
@@ -248,7 +271,7 @@ mean(dtDay$steps)
 ## [1] 35.60864
 ```
 
-The folllowing shows the mean of a weekend day.
+The following shows the mean of a weekend day.
 
 
 ```r
@@ -259,6 +282,7 @@ mean(dtEnd$steps)
 ```
 ## [1] 42.36458
 ```
-As you can see weekday mean is 35.60864 and weekend mean is 42.36458.
+As you can see weekday mean of steps per interval is 35.6 and weekend mean is 42.4.
 
-So, it appears that the subject was more active during the weekend. Also, during the weekend most steps seem to occur by around interval 1500. Whereas, most step during the weekday seem to occur around interval 1000. This indicates that the subject does most of his walking in short bursts during the weekday and most of his walking during the weekend in longer bursts of activity. 
+So, it appears that the subject was more active during the weekend. Also, during the weekend most steps seem to occur by around interval 1500. Whereas, most steps during the weekday seem to occur around interval 1000. This seems to indicate that the subject does most of his walking in short bursts during the weekday and most of his walking during the weekend in longer bursts of activity. 
+
