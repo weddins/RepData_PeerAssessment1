@@ -42,14 +42,14 @@ dtAct <- merge(dtAct, dtAvgSteps)
 
 ## What is mean total number of steps taken per day?
 
-Following is a histogram of the total number of steps take per day.
+Following is a histogram of the total number of steps taken per day.
 
-```{r, echo=TRUE}
+```{r 1-BarDayOfWeek, echo=TRUE, fig.path='figures/'}
 library(ggplot2, warn.conflicts = FALSE, quietly=TRUE)
 
 # Plot interval with day of week colored for each bar
 p <- ggplot(dtAct, aes(x=day, y=steps, fill=factor(weekday))) + 
-            stat_summary(fun.y="sum", geom="bar") +
+            stat_summary(fun.y="sum", geom="bar", na.rm = TRUE) +
             scale_x_discrete(breaks=c(1:7),
             labels=c("Mon","Tue","Wed","Thu","Fri","Sat","Sun")) +
             ggtitle("Histogram of Steps per Day") + xlab("Day") + ylab("Steps") +
@@ -72,7 +72,7 @@ median(order(dtAct$mean), na.rm = TRUE)
 
 Following is a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis).
 
-```{r, echo=TRUE}
+```{r 2-TimeSeriesOfIntervals, echo=TRUE, fig.path='figures/'}
 ggpMeanSteps = ggplot(dtAct, aes(interval, meansteps, type = "l")) + 
       geom_line() +
       labs(title="Mean Steps by Interval") + xlab("Interval") + ylab("Steps")
@@ -144,8 +144,8 @@ dtAct <- setcolorder(dtAct, c("day", "date", "weekday", "interval", "steps", "me
 ```
 2. Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).
 
-```{r, echo=TRUE}
-# This seems to work, but it's filled in. Oh well, just forget about it
+```{r 3-LineGraphStepsByWeekEnd, echo=TRUE, fig.path='figures/'}
+# This seems to work, but it's filled in.
 ppgWeekdayWeekend = ggplot(dtAct, aes(x = interval, y = steps, type = "l")) + 
       geom_line() +
       facet_grid(weekdayend ~ .) +
@@ -158,19 +158,15 @@ print(ppgWeekdayWeekend)
 The following shows the mean of a weekday for each interval.
 
 ```{r, echo=TRUE}
-require(sqldf)
 dtAct$weekdayend <- as.character(dtAct$weekdayend)
-dtDay <- sqldf("select * from dtAct where weekdayend = 'weekday'")
-
-#dfAvgSteps <- as.data.frame(dtAct[, mean(steps, na.rm = TRUE), by = day])
+dtDay <- dtAct[ which(dtAct$weekdayend == 'weekday') , ]
 mean(dtDay$steps)
 ```
 
 The folllowing shows the mean of a weekend day.
 
 ```{r, echo=TRUE}
-dtEnd <- sqldf("select * from dtAct where weekdayend = 'weekend'")
-#dfAvgSteps <- as.data.frame(dtAct[, mean(steps, na.rm = TRUE), by = day])
+dtEnd <- dtAct[ which(dtAct$weekdayend == 'weekend') , ]
 mean(dtEnd$steps)
 ```
 As you can see weekday mean is 35.60864 and weekend mean is 42.36458.
